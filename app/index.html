@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumino Payment</title>
+<style>
+  :root{--bg:#f5f7fb;--card:#fff;--ink:#14213d;--muted:#5b6784;--brand:#4f46e5;--brand-d:#3730a3;--ok:#0f9d58;--err:#c62828;--line:#dde3f0}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--ink);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:10px}
+  header .logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fde68a,#f59e0b)}
+  header h1{font-size:20px;margin:0}
+  header small{opacity:.7;margin-left:auto}
+  main{max-width:960px;margin:24px auto;padding:0 16px;display:grid;gap:24px;grid-template-columns:1fr 320px}
+  @media(max-width:800px){main{grid-template-columns:1fr}}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+  h2{margin:0 0 14px;font-size:17px}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+  input[type=text],input[type=number],input[type=date]{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px}
+  .methods{display:flex;gap:8px;flex-wrap:wrap}
+  .methods label{margin:0;display:flex;align-items:center;gap:6px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;color:var(--ink);cursor:pointer}
+  .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  button{margin-top:16px;padding:11px 18px;border:0;border-radius:8px;background:var(--brand);color:#fff;font-size:15px;cursor:pointer}
+  button:hover{background:var(--brand-d)}
+  button.secondary{background:#e8ebf5;color:var(--ink)}
+  .summary div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .summary .total{font-weight:700;font-size:16px;border:0}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:8px;font-size:14px;display:none}
+  .msg.ok{display:block;background:#e6f6ec;color:var(--ok)}
+  .msg.err{display:block;background:#fdeaea;color:var(--err)}
+  .hidden{display:none}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  ul.plans{list-style:none;padding:0;margin:8px 0 0}
+  table{width:100%;font-size:12px;border-collapse:collapse;margin-top:8px}
+  td,th{text-align:left;padding:4px;border-bottom:1px solid var(--line)}
+  .full{grid-column:1/-1}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo"></span><h1>Lumino</h1><small>Training app &mdash; test data only</small>
+</header>
+
+<main>
+  <!-- CHECKOUT -->
+  <section aria-labelledby="checkout-h">
+    <h2 id="checkout-h">Checkout</h2>
+    <form id="pay-form" novalidate>
+      <label for="amount">Order amount (USD)</label>
+      <input id="amount" data-testid="amount" type="number" step="0.01" value="100.00" inputmode="decimal">
+
+      <label>Payment method</label>
+      <div class="methods" role="radiogroup">
+        <label><input type="radio" name="method" value="card" data-testid="method-card" checked> Card</label>
+        <label><input type="radio" name="method" value="ach" data-testid="method-ach"> ACH</label>
+        <label><input type="radio" name="method" value="cash" data-testid="method-cash"> Cash</label>
+      </div>
+
+      <div id="card-fields">
+        <label for="card-number">Card number</label>
+        <input id="card-number" data-testid="card-number" type="text" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
+        <div class="row">
+          <div><label for="expiry">Expiry (MM/YY)</label><input id="expiry" data-testid="expiry" type="text" placeholder="12/30"></div>
+          <div><label for="cvv">CVV</label><input id="cvv" data-testid="cvv" type="text" inputmode="numeric" maxlength="4"></div>
+          <div><label for="zip">ZIP</label><input id="zip" data-testid="zip" type="text" inputmode="numeric" maxlength="5"></div>
+        </div>
+        <div class="hint">Test cards: 4242 4242 4242 4242 (CVV 123, ZIP 94103) &middot; 5555 5555 5555 4444 (CVV 456, ZIP 10001)</div>
+      </div>
+
+      <div id="ach-fields" class="hidden">
+        <div class="row">
+          <div class="full"><label for="routing">Routing number (9 digits)</label><input id="routing" data-testid="routing" type="text" inputmode="numeric" maxlength="9"></div>
+          <div class="full"><label for="account">Account number (4&ndash;17 digits)</label><input id="account" data-testid="account" type="text" inputmode="numeric" maxlength="17"></div>
+        </div>
+      </div>
+
+      <div id="cash-fields" class="hidden"><div class="hint">Pay the cash price in person at a Lumino partner location.</div></div>
+
+      <div id="installment-box" style="margin-top:14px">
+        <label style="display:flex;align-items:center;gap:8px;color:var(--ink);margin:0">
+          <input type="checkbox" id="use-installments" data-testid="use-installments"> Pay in installments
+        </label>
+        <div class="hint" id="installment-hint" data-testid="installment-hint"></div>
+        <div id="plan-box" class="hidden">
+          <label for="plan">Plan</label>
+          <select id="plan" data-testid="plan" style="padding:10px;border:1px solid var(--line);border-radius:8px">
+            <option value="3">3 months</option><option value="6">6 months</option><option value="12">12 months</option>
+          </select>
+          <ul class="plans" id="plan-schedule" data-testid="plan-schedule"></ul>
+        </div>
+      </div>
+
+      <button type="submit" data-testid="pay-button">Pay now</button>
+      <div id="pay-msg" class="msg" data-testid="pay-message" role="status"></div>
+    </form>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="summary" aria-labelledby="sum-h">
+    <h2 id="sum-h">Order summary</h2>
+    <div><span>Cash price</span><span id="s-base" data-testid="summary-base">$0.00</span></div>
+    <div><span>Card surcharge (4%)</span><span id="s-fee" data-testid="summary-fee">$0.00</span></div>
+    <div class="total"><span>Total charged</span><span id="s-total" data-testid="summary-total">$0.00</span></div>
+    <div style="margin-top:14px"><span>Paid today</span><span id="s-daily" data-testid="daily-total">$0.00</span></div>
+    <div><span>Daily cap remaining</span><span id="s-remaining" data-testid="daily-remaining">$8,000.00</span></div>
+    <button type="button" class="secondary" id="reset-daily" data-testid="reset-daily">Reset daily total</button>
+    <table aria-label="Rules"><tr><th>Rule</th><th>Value</th></tr>
+      <tr><td>Per transaction</td><td>$5 &ndash; $5,000</td></tr>
+      <tr><td>Daily cap</td><td>$8,000</td></tr>
+      <tr><td>Installments</td><td>orders &ge; $500</td></tr>
+    </table>
+  </section>
+
+  <!-- REFUND -->
+  <section class="full" aria-labelledby="refund-h">
+    <h2 id="refund-h">Request a refund</h2>
+    <form id="refund-form" novalidate>
+      <div class="row">
+        <div><label for="r-paid">Amount paid (USD)</label><input id="r-paid" data-testid="refund-paid" type="number" step="0.01"></div>
+        <div><label for="r-amount">Refund amount (USD)</label><input id="r-amount" data-testid="refund-amount" type="number" step="0.01"></div>
+        <div><label for="r-order-date">Order date</label><input id="r-order-date" data-testid="refund-order-date" type="date"></div>
+      </div>
+      <div class="row">
+        <div><label for="r-today">Refund request date</label><input id="r-today" data-testid="refund-today" type="date"></div>
+        <div style="align-self:end"><label style="display:flex;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" id="r-approval" data-testid="refund-approval"> Approval obtained</label></div>
+      </div>
+      <div class="hint">Full refund within 14 days. Partial refund (less than amount paid) up to 60 days, needs approval.</div>
+      <button type="submit" data-testid="refund-button">Submit refund</button>
+      <div id="refund-msg" class="msg" data-testid="refund-message" role="status"></div>
+    </form>
+  </section>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  // All money is handled in integer cents.
+  var MIN = 500, MAX = 500000, DAILY_CAP = 800000, INSTALLMENT_MIN = 50000, SURCHARGE_PCT = 4;
+  var TEST_CARDS = {
+    '4242424242424242': {cvv:'123', zip:'94103'},
+    '5555555555554444': {cvv:'456', zip:'10001'}
+  };
+  var $ = function(id){return document.getElementById(id);};
+  var fmt = function(c){return '$' + (c/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var today = function(){return new Date().toISOString().slice(0,10);};
+  var method = function(){return document.querySelector('input[name=method]:checked').value;};
+  var toCents = function(v){var n = parseFloat(v); return isNaN(n) ? NaN : Math.round(n*100);};
+
+  // Daily total persisted per calendar day.
+  function getDaily(){
+    try{var d = JSON.parse(localStorage.getItem('lumino.daily')||'{}'); return d.date===today() ? d.cents : 0;}catch(e){return 0;}
+  }
+  function setDaily(c){try{localStorage.setItem('lumino.daily',JSON.stringify({date:today(),cents:c}));}catch(e){}}
+
+  function calc(){
+    var base = toCents($('amount').value);
+    if(isNaN(base) || base < 0) return {base:0,fee:0,total:0,valid:false};
+    var fee = method()==='card' ? Math.round(base*SURCHARGE_PCT/100) : 0; // round half up to the cent
+    return {base:base,fee:fee,total:base+fee,valid:true};
+  }
+
+  function msg(el,type,text){el.className='msg '+type;el.textContent=text;}
+
+  function render(){
+    var c = calc(), m = method();
+    $('s-base').textContent = fmt(c.base);
+    $('s-fee').textContent = fmt(c.fee);
+    $('s-total').textContent = fmt(c.total);
+    var daily = getDaily();
+    $('s-daily').textContent = fmt(daily);
+    $('s-remaining').textContent = fmt(Math.max(0,DAILY_CAP-daily));
+    $('card-fields').classList.toggle('hidden', m!=='card');
+    $('ach-fields').classList.toggle('hidden', m!=='ach');
+    $('cash-fields').classList.toggle('hidden', m!=='cash');
+
+    var eligible = c.valid && c.base >= INSTALLMENT_MIN;
+    var cb = $('use-installments');
+    cb.disabled = !eligible;
+    if(!eligible) cb.checked = false;
+    $('installment-hint').textContent = eligible ? 'Available for this order.' : 'Installments are available only on orders of $500 or more.';
+    $('plan-box').classList.toggle('hidden', !cb.checked);
+    if(cb.checked){
+      var n = parseInt($('plan').value,10), per = Math.floor(c.total/n), last = c.total - per*(n-1);
+      $('plan-schedule').innerHTML = '<li data-testid="plan-line">' + n + ' payments: ' + fmt(per) + ' each' +
+        (last!==per ? ' (last payment ' + fmt(last) + ')' : '') + '</li>';
+    }
+  }
+
+  $('pay-form').addEventListener('input', render);
+  $('pay-form').addEventListener('change', render);
+
+  $('reset-daily').addEventListener('click', function(){setDaily(0);render();msg($('pay-msg'),'ok','Daily total reset.');});
+
+  $('pay-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var out = $('pay-msg'), c = calc(), m = method();
+    if(!c.valid || c.base===0 && $('amount').value==='') return msg(out,'err','Enter a valid amount.');
+    if(c.total < MIN) return msg(out,'err','Minimum transaction is $5.00.');
+    if(c.total > MAX) return msg(out,'err','Maximum transaction is $5,000.00.');
+    if(getDaily() + c.total > DAILY_CAP) return msg(out,'err','Daily limit of $8,000.00 would be exceeded.');
+
+    if(m==='card'){
+      var num = $('card-number').value.replace(/\s+/g,''), card = TEST_CARDS[num];
+      var exp = $('expiry').value.trim(), em = /^(0[1-9]|1[0-2])\/(\d{2})$/.exec(exp);
+      if(!card) return msg(out,'err','Card declined: unknown card number.');
+      if(!em) return msg(out,'err','Enter expiry as MM/YY.');
+      var y = 2000+parseInt(em[2],10), mo = parseInt(em[1],10), now = new Date();
+      if(y < now.getFullYear() || (y===now.getFullYear() && mo < now.getMonth()+1)) return msg(out,'err','Card has expired.');
+      if($('cvv').value.trim()!==card.cvv) return msg(out,'err','Card declined: CVV does not match.');
+      if($('zip').value.trim()!==card.zip) return msg(out,'err','Card declined: ZIP does not match.');
+    } else if(m==='ach'){
+      if(!/^\d{9}$/.test($('routing').value.trim())) return msg(out,'err','Routing number must be 9 digits.');
+      if(!/^\d{4,17}$/.test($('account').value.trim())) return msg(out,'err','Account number must be 4-17 digits.');
+    }
+
+    setDaily(getDaily() + c.total);
+    var extra = $('use-installments').checked ? ' in ' + $('plan').value + ' installments' : '';
+    msg(out,'ok','Payment of ' + fmt(c.total) + ' approved' + extra + ' via ' + m.toUpperCase() + '.');
+    render();
+  });
+
+  // Refunds
+  $('r-today').value = today();
+  $('refund-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var out = $('refund-msg');
+    var paid = toCents($('r-paid').value), amt = toCents($('r-amount').value);
+    var od = $('r-order-date').value, rd = $('r-today').value;
+    if(isNaN(paid)||paid<=0) return msg(out,'err','Enter the amount paid.');
+    if(isNaN(amt)||amt<=0) return msg(out,'err','Enter a refund amount greater than $0.');
+    if(amt>paid) return msg(out,'err','Refund cannot exceed the amount paid.');
+    if(!od||!rd) return msg(out,'err','Enter the order date and request date.');
+    var days = Math.round((Date.parse(rd)-Date.parse(od))/86400000);
+    if(days<0) return msg(out,'err','Request date cannot be before the order date.');
+    if(days>60) return msg(out,'err','Refund window closed: more than 60 days since order.');
+    if(days<=14) return msg(out,'ok','Refund of ' + fmt(amt) + ' approved (' + (amt===paid?'full':'partial') + ', day ' + days + ').');
+    if(amt===paid) return msg(out,'err','Full refunds are only available within 14 days.');
+    if(!$('r-approval').checked) return msg(out,'err','Partial refund after 14 days requires approval.');
+    msg(out,'ok','Partial refund of ' + fmt(amt) + ' approved (day ' + days + ').');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
