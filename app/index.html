@@ -196,9 +196,13 @@
     e.preventDefault();
     var out = $('pay-msg'), c = calc(), m = method();
     if(!c.valid || c.base===0 && $('amount').value==='') return msg(out,'err','Enter a valid amount.');
-    if(c.total < MIN) return msg(out,'err','Minimum transaction is $5.00.');
-    if(c.total > MAX) return msg(out,'err','Maximum transaction is $5,000.00.');
-    if(getDaily() + c.total > DAILY_CAP) return msg(out,'err','Daily limit of $8,000.00 would be exceeded.');
+    if(c.base < MIN) return msg(out,'err','The order amount of ' + fmt(c.base) + ' is below the $5.00 minimum.');
+    var daily = getDaily();
+    var plan = $('use-installments').checked ? parseInt($('plan').value,10) : 1;
+    var perPayment = Math.ceil(c.base / plan); // each installment is its own transaction
+    if(plan===1 && c.base > MAX) return msg(out,'err','The order amount of ' + fmt(c.base) + ' is above the $5,000.00 per-transaction limit.');
+    if(plan>1 && perPayment > MAX) return msg(out,'err','Each installment of ' + fmt(perPayment) + ' is above the $5,000.00 per-transaction limit.');
+    if(daily + c.base > DAILY_CAP) return msg(out,'err',"This order would bring today's total to " + fmt(daily + c.base) + ', above the $8,000.00 daily limit.');
 
     if(m==='card'){
       var num = $('card-number').value.replace(/\s+/g,''), card = TEST_CARDS[num];
@@ -214,7 +218,7 @@
       if(!/^\d{4,17}$/.test($('account').value.trim())) return msg(out,'err','Account number must be 4-17 digits.');
     }
 
-    setDaily(getDaily() + c.total);
+    setDaily(daily + c.base);
     var extra = $('use-installments').checked ? ' in ' + $('plan').value + ' installments' : '';
     msg(out,'ok','Payment of ' + fmt(c.total) + ' approved' + extra + ' via ' + m.toUpperCase() + '.');
     render();

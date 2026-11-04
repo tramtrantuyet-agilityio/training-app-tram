@@ -16,4 +16,4 @@ Fictional client for the AI Tools training. Training data only – no real clien
 - tests/    test matrices (.md) and Playwright tests (.spec.js)
 - notes/    personal notes, decision docs
 
-Status: waiting for client
+Status: LUM-02 in review
