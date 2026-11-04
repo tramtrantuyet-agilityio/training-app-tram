@@ -15,4 +15,5 @@ Fictional client for the AI Tools training. Training data only – no real clien
 - specs/    specs written by BA
 - tests/    test matrices (.md) and Playwright tests (.spec.js)
 - notes/    personal notes, decision docs
- Status: LUM-02 in review
+
+Status: waiting for client
