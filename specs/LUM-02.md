@@ -60,6 +60,7 @@ The page should state which amount was checked, so the client can see why a paym
 |---|---|
 | Cash price above $5,000.00 | "The order amount of {cash price} is above the $5,000.00 per-transaction limit." |
 | Cash price below $5.00 | "The order amount of {cash price} is below the $5.00 minimum." |
+| Installment above $5,000.00 | "Each installment of {installment} is above the $5,000.00 per-transaction limit." |
 | Daily cap exceeded | "This order would bring today's total to {new total}, above the $8,000.00 daily limit." |
 
 When paying by card, the order summary keeps showing the cash price, the 4% surcharge, and the total charged.
@@ -84,6 +85,9 @@ Amounts are the cash price entered in the Order amount field. Use test card `424
 | AC-12 | Method = Card, amount $5,000.00, installments = 3 months | Pay now | Approved. Total charged $5,200.00 in 3 payments (about $1,733.33 each, last payment takes the remaining cents). Each installment is within $5.00 to $5,000.00. |
 | AC-13 | Amount $499.99 | Open installments | Installments are not available. |
 | AC-14 | Amount $500.00 | Open installments | Installments are available. |
+| AC-16 | Method = Card, amount $6,000.00, installments = 3 months | Pay now | Approved. Total charged $6,240.00 in 3 payments of $2,080.00. |
+| AC-17 | Method = Card, amount $6,000.00, installments off | Pay now | Blocked with the maximum message. |
+| AC-18 | Method = Card, amount $16,000.00, installments = 3 months | Pay now | Blocked: each installment ($5,333.34) is above $5,000.00. |
 | AC-15 | Any blocked payment | View the message | The message names the checked amount (cash price) and the limit, and does not read as a card decline. |
 
 ## 4. Out of scope
