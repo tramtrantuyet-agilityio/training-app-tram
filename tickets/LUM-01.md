@@ -1,5 +1,5 @@
 ## LUM-01 · Customer charged more than the listed price
-**User story **
+**User story**
 As a paying customer, 
 I want to see the card price and the cash/ACH price before I confirm payment, 
 so that the amount I am charged matches the price I agreed to.
